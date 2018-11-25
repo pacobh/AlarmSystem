@@ -47,4 +47,29 @@ public class BoardDefaults {
                 throw new IllegalArgumentException("Unknown device: " + Build.DEVICE);
         }
     }
+
+    public static String getGPIOForGreenLed(){
+
+        switch (Build.DEVICE) {
+            case DEVICE_RPI3:
+                return "BCM6";
+            case DEVICE_IMX7D_PICO:
+                return "GPIO6_IO14";
+            default:
+                throw new IllegalArgumentException("Unknown device: " + Build.DEVICE);
+        }
+
+    }
+    public static String getGPIOForRedLed(){
+
+        switch (Build.DEVICE) {
+            case DEVICE_RPI3:
+                return "BCM5";
+            case DEVICE_IMX7D_PICO:
+                return "GPIO6_IO14";
+            default:
+                throw new IllegalArgumentException("Unknown device: " + Build.DEVICE);
+        }
+
+    }
 }

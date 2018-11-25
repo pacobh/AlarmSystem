@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package fjbermudez.com.alarmsistem;
+package fjbermudez.com.alarmsistem.model;
 
 import java.util.Map;
 
@@ -25,18 +25,18 @@ public class DoorbellEntry {
     Long timestamp;
     String image;
     Boolean acceptEntrance;
-    Integer id;
+    String key;
     Map<String, Float> annotations;
 
     public DoorbellEntry() {
     }
 
-    public DoorbellEntry(Long timestamp, String image,Boolean acceptEntrance,Integer id, Map<String, Float> annotations) {
+    public DoorbellEntry(Long timestamp, String image,Boolean acceptEntrance,String key, Map<String, Float> annotations) {
         this.timestamp = timestamp;
         this.image = image;
         this.annotations = annotations;
         this.acceptEntrance = acceptEntrance;
-        this.id = id;
+        this.key = key;
     }
 
     public Long getTimestamp() {
@@ -55,7 +55,7 @@ public class DoorbellEntry {
         return acceptEntrance;
     }
 
-    public Integer getId() {
-        return id;
+    public String getKey() {
+        return key;
     }
 }

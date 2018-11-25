@@ -10,12 +10,19 @@ import android.media.ImageReader;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.Window;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
@@ -25,9 +32,12 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
+import com.google.android.things.pio.Gpio;
+import com.google.android.things.pio.PeripheralManager;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -37,6 +47,8 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+
+import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -78,6 +90,14 @@ public class DoorbellActivity extends Activity {
 
     @BindView(R.id.ivPhoto)
     ImageView ivPhoto;
+    @BindView(R.id.rlDoorbell)
+    RelativeLayout rlDoorbell;
+    @BindView(R.id.tvMessageEntrance)
+    TextView tvMessageEntrance;
+
+    // Timer to show or hide view to entrance
+    private CountDownTimer countDownTimer;
+
 
 
     /**
@@ -108,16 +128,22 @@ public class DoorbellActivity extends Activity {
      * An additional thread for running Cloud tasks that shouldn't block the UI.
      */
     private HandlerThread mCloudThread;
-
-
     MediaPlayer alarm = null;
-//    FirebaseAuth mAuth;
+    MediaPlayer bell = null;
+    MediaPlayer messageEntrance = null;
+    private Gpio mLedGreen;
+    private Gpio mLedRed;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-//        mAuth = FirebaseAuth.getInstance();
+
+
 
         Log.d(TAG, "Doorbell Activity created.");
         // Initialize alarm sound
@@ -131,7 +157,7 @@ public class DoorbellActivity extends Activity {
             Log.e(TAG, "No permission");
             return;
         }
-//
+
         mDatabase = FirebaseDatabase.getInstance();
         mStorage = FirebaseStorage.getInstance();
 
@@ -147,12 +173,28 @@ public class DoorbellActivity extends Activity {
         // Initialize the doorbell button driver
         initPIO();
 
+        // Initialize led gpio
+        initLedGpio();
+
         // Camera code is complicated, so we've shoved it all in this closet class for you.
         mCamera = DoorbellCamera.getInstance();
         mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
 
-        // Initialize motion Sensor
-//        initializeMotionSensor();
+
+
+    }
+
+    private void initLedGpio() {
+        try {
+            String pinLedGreen = BoardDefaults.getGPIOForGreenLed();
+            mLedGreen = PeripheralManager.getInstance().openGpio(pinLedGreen);
+            mLedGreen.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+            String pinLedRed = BoardDefaults.getGPIOForRedLed();
+            mLedRed = PeripheralManager.getInstance().openGpio(pinLedRed);
+            mLedRed.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW);
+          } catch (IOException e) {
+            Log.e(TAG, "Error on PeripheralIO API", e);
+        }
     }
 
     private void initPIO() {
@@ -201,7 +243,7 @@ public class DoorbellActivity extends Activity {
 
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            Toast.makeText(getApplicationContext(), "Has entrado hijoputa", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), getString(R.string.message_alarm), Toast.LENGTH_LONG).show();
             try {
                 if (alarm.isPlaying()) {
                     alarm.stop();
@@ -239,30 +281,18 @@ public class DoorbellActivity extends Activity {
      */
     private void onPictureTaken(final byte[] imageBytes) {
         if (imageBytes != null) {
-            final DatabaseReference log = mDatabase.getReference("entrances").push();
-            log.child("acceptEntrance").addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    Toast.makeText(getApplicationContext(),"Ha cambiado el valor " + dataSnapshot.getValue(),Toast.LENGTH_LONG).show();
-                }
+            final DatabaseReference entrances = mDatabase.getReference(DatabaseConstants.DATABASE_NAME).push();
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
 
-                }
-            });
-//            final DatabaseReference log = mDatabase.getReferenceFromUrl("https://alarmsystem-eddc4.firebaseio.com").push();
-            final StorageReference imageRef = mStorage.getReference().child(log.getKey());
-            final Bitmap fotico = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+            final StorageReference imageRef = mStorage.getReference().child(entrances.getKey());
+            final Bitmap photo = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    showPhoto(fotico);
+                    showPhoto(photo);
                 }
             });
-            Log.d("l>", "Parar fotico");
-//            final StorageReference ref = storageRef.child("your_REF");
-//            uploadTask = ref.putFile(file);
+
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
 
@@ -284,16 +314,18 @@ public class DoorbellActivity extends Activity {
                         String downloadURL = downloadUri.toString();
 
                         Log.i(TAG, "Image upload successful");
-                        log.child("timestamp").setValue(ServerValue.TIMESTAMP);
-                        log.child("image").setValue(downloadURL);
-                        log.child("acceptEntrance").setValue(false);
-                        log.child("id").setValue(1);
+                        entrances.child(DatabaseConstants.TIME_STAMP_KEY).setValue(ServerValue.TIMESTAMP);
+                        entrances.child(DatabaseConstants.IMAGE_KEY).setValue(downloadURL);
+                        entrances.child(DatabaseConstants.ACCEPT_ENTRANCE_KEY).setValue(false);
+                        entrances.child(DatabaseConstants.REGISTER_KEY).setValue(entrances.getKey());
                         // process image annotations
-                        annotateImage(log, imageBytes);
+//                        annotateImage(entrances, imageBytes);
+
+                        registerListenerChangeEntranceValue(entrances,entrances.getKey());
                     } else {
                         // Handle failures
                         Log.w(TAG, "Unable to upload image to Firebase");
-                        log.removeValue();
+                        entrances.removeValue();
                     }
                 }
             });
@@ -302,8 +334,137 @@ public class DoorbellActivity extends Activity {
         }
     }
 
-    private void showPhoto(Bitmap fotico) {
-        ivPhoto.setImageBitmap(fotico);
+    private void registerListenerChangeEntranceValue(DatabaseReference log, String key) {
+
+        log.addChildEventListener(new ChildEventListener() {
+
+//        log.child(key).child(DatabaseConstants.ACCEPT_ENTRANCE_KEY).addChildEventListener(new ChildEventListener() {
+//            @Override
+//            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+//                Toast.makeText(getApplicationContext(),"Ha cambiado el valor " + dataSnapshot.getValue(),Toast.LENGTH_LONG).show();
+//
+//                if(dataSnapshot.getValue() !=null) {
+//
+//                boolean acceptEntrance = (boolean) dataSnapshot.getValue();
+//
+//                    configureAcceptView(acceptEntrance);
+//
+//                    if (acceptEntrance) {
+//                        turnOnGreenLed();
+//                    } else {
+//                        turnOnRedLed();
+//                    }
+//                }
+//            }
+
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                Log.d("l>" ,"added");
+            }
+
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                Log.d("l>" ,"changed value"+ dataSnapshot.getValue());
+                Log.d("l>" ,"changed key"+ dataSnapshot.getKey());
+
+                if(dataSnapshot.getValue() !=null && dataSnapshot.getKey().equalsIgnoreCase(DatabaseConstants.ACCEPT_ENTRANCE_KEY)) {
+
+                boolean acceptEntrance = (boolean) dataSnapshot.getValue();
+
+                    configureAcceptView(acceptEntrance);
+
+                    if (acceptEntrance) {
+                        turnOnGreenLed();
+                    } else {
+                        turnOnRedLed();
+                    }
+                }
+            }
+
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+                Log.d("l>" ,"removed");
+
+            }
+
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                Log.d("l>" ,"moved");
+
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.d("l>" ,"canceled");
+
+            }
+        });
+    }
+
+    private void configureAcceptView(boolean acceptEntrance) {
+
+        createTimeOutToWaitAcceptEntrance();
+        tvMessageEntrance.setVisibility(View.VISIBLE);
+
+        if(acceptEntrance){
+            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.green));
+            tvMessageEntrance.setText(getString(R.string.entrance_accepted));
+        }else{
+            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.red));
+            tvMessageEntrance.setText(getString(R.string.entrance_denied));        }
+    }
+
+    private void createTimeOutToWaitAcceptEntrance() {
+
+
+        if(countDownTimer!=null) {
+            countDownTimer.cancel();
+        }
+        countDownTimer = new CountDownTimer(60000, 1000) {
+
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+            }
+
+            @Override
+            public void onFinish() {
+                cleanView();
+            }};
+
+        countDownTimer.start();
+    }
+
+    private void cleanView() {
+
+        ivPhoto.setVisibility(View.GONE);
+        tvMessageEntrance.setVisibility(View.GONE);
+        rlDoorbell.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),R.color.white));
+
+    }
+
+    private void turnOnRedLed() {
+
+        try {
+            mLedRed.setValue(true);
+            mLedGreen.setValue(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void turnOnGreenLed() {
+        try {
+            mLedRed.setValue(false);
+            mLedGreen.setValue(true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showPhoto(Bitmap photo) {
+        ivPhoto.setVisibility(View.VISIBLE);
+        ivPhoto.setImageBitmap(photo);
     }
 
     /**
@@ -339,32 +500,4 @@ public class DoorbellActivity extends Activity {
         super.onResume();
     }
 
-//    @Override
-//    protected void onStart() {
-//        super.onStart();
-//        FirebaseUser user = mAuth.getCurrentUser();
-//        if (user != null) {
-//            // do your stuff
-//        } else {
-//            signInAnonymously();
-//        }
-//
-//
-//    }
-
-//    private void signInAnonymously() {
-//        mAuth.signInAnonymously().addOnSuccessListener(this, new OnSuccessListener<AuthResult>() {
-//            @Override
-//            public void onSuccess(AuthResult authResult) {
-//                // do your stuff
-//
-//            }
-//        })
-//                .addOnFailureListener(this, new OnFailureListener() {
-//                    @Override
-//                    public void onFailure(@NonNull Exception exception) {
-//                        Log.e(TAG, "signInAnonymously:FAILURE", exception);
-//                    }
-//                });
-//    }
 }

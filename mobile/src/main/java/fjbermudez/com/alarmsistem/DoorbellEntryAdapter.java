@@ -17,13 +17,14 @@ package fjbermudez.com.alarmsistem;
 
 import android.content.Context;
 import android.os.Build;
+import android.os.CountDownTimer;
 import android.support.annotation.RequiresApi;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -33,7 +34,10 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import fjbermudez.com.alarmsistem.model.DoorbellEntry;
 
 /**
  * RecyclerView adapter to populate doorbell entries from Firebase.
@@ -41,6 +45,8 @@ import java.util.ArrayList;
 public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry, DoorbellEntryAdapter.DoorbellEntryViewHolder> {
 
     private DatabaseReference databaseReference;
+    private final String KEY_ACCEPT_ENTRANCE_VALUE = "acceptEntrance";
+
 
     /**
      * ViewHolder for each doorbell entry
@@ -49,14 +55,20 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
 
         public final ImageView image;
         public final TextView time;
-        public final TextView metadata;
+        public final Button acceptEntrance;
+        public final Button deniedEntrance;
+
+//        public final TextView metadata;
 
         public DoorbellEntryViewHolder(View itemView) {
             super(itemView);
 
             this.image = (ImageView) itemView.findViewById(R.id.imageView1);
             this.time = (TextView) itemView.findViewById(R.id.textView1);
-            this.metadata = (TextView) itemView.findViewById(R.id.textView2);
+            this.acceptEntrance = (Button) itemView.findViewById(R.id.btAccept);
+            this.deniedEntrance = (Button) itemView.findViewById(R.id.btDenied);
+
+//            this.metadata = (TextView) itemView.findViewById(R.id.textView2);
         }
     }
 
@@ -83,7 +95,8 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
 
     @RequiresApi(api = Build.VERSION_CODES.CUPCAKE)
     @Override
-    protected void onBindViewHolder(DoorbellEntryViewHolder holder, int position, DoorbellEntry model) {
+    protected void onBindViewHolder(DoorbellEntryViewHolder holder, int position, final DoorbellEntry model) {
+
         // Display the timestamp
         CharSequence prettyTime = DateUtils.getRelativeDateTimeString(mApplicationContext,
                 model.getTimestamp(), DateUtils.SECOND_IN_MILLIS, DateUtils.WEEK_IN_MILLIS, 0);
@@ -99,17 +112,46 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
                     .into(holder.image);
         }
 
+        // onClickListenerButtons
+
+        holder.acceptEntrance.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                acceptEntrance(model);
+            }
+        });
+
+        holder.deniedEntrance.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deniedEntrance(model);
+            }
+        });
+
         // Display the metadata
-        if (model.getAnnotations() != null) {
-            ArrayList<String> keywords = new ArrayList<>(model.getAnnotations().keySet());
+//        if (model.getAnnotations() != null) {
+//            ArrayList<String> keywords = new ArrayList<>(model.getAnnotations().keySet());
+//
+//            int limit = Math.min(keywords.size(), 3);
+//            holder.metadata.setText(TextUtils.join("\n", keywords.subList(0, limit)));
+//        } else {
+//            holder.metadata.setText("no annotations yet");
+//        }
+    }
 
-            int limit = Math.min(keywords.size(), 3);
-            holder.metadata.setText(TextUtils.join("\n", keywords.subList(0, limit)));
-            databaseReference.child("entrances").child("LS6MSk4BkxKGLHAUn5o").child("acceptEntrance").setValue(true);
+    private void acceptEntrance(DoorbellEntry model){
 
-        } else {
-            holder.metadata.setText("no annotations yet");
-        }
+        Map<String,Object> acceptMap = new HashMap<String,Object>();
+        acceptMap.put(KEY_ACCEPT_ENTRANCE_VALUE, true);
+        databaseReference.child(model.getKey()).updateChildren(acceptMap);
+
+    }
+    private void deniedEntrance(DoorbellEntry model){
+
+        Map<String,Object> deniedMap = new HashMap<String,Object>();
+        deniedMap.put(KEY_ACCEPT_ENTRANCE_VALUE, false);
+        databaseReference.child(model.getKey()).updateChildren(deniedMap);
+
     }
 
 }

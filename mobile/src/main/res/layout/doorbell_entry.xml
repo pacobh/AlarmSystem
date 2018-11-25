@@ -2,29 +2,55 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="horizontal"
+    android:layout_margin="8dp"
+    android:background="@drawable/shape_item_adapter"
     android:layout_width="match_parent"
+    android:elevation="5dp"
     android:layout_height="wrap_content">
 
     <ImageView
         android:layout_width="220dp"
         android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:layout_marginEnd="8dp"
         android:id="@+id/imageView1" />
 
     <LinearLayout
         android:orientation="vertical"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="10dp">
+        android:weightSum="3"
+        >
 
         <TextView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:textStyle="bold"
             android:id="@+id/textView1" />
 
-        <TextView
+        <!--<TextView-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:id="@+id/textView2" />-->
+
+        <Button
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/textView2" />
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:id="@+id/btAccept"
+            android:textColor="@color/white"
+            android:background="@color/green"
+            android:text="@string/allow"/>
+
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:textColor="@color/white"
+            android:background="@color/red"
+            android:id="@+id/btDenied"
+            android:text="@string/denied"/>
     </LinearLayout>
 </LinearLayout>

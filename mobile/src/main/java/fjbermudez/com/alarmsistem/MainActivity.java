@@ -1,6 +1,7 @@
 package fjbermudez.com.alarmsistem;
 
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -13,6 +14,7 @@ public class MainActivity extends AppCompatActivity {
 
     private RecyclerView mRecyclerView;
     private DoorbellEntryAdapter mAdapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
