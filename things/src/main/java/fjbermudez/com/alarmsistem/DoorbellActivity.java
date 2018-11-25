@@ -27,28 +27,20 @@ import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
 import com.google.android.things.pio.Gpio;
 import com.google.android.things.pio.PeripheralManager;
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-
-import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -429,18 +421,35 @@ public class DoorbellActivity extends Activity {
 
             @Override
             public void onFinish() {
-                cleanView();
+                cleanValues();
             }};
 
         countDownTimer.start();
     }
 
-    private void cleanView() {
+    private void cleanValues() {
 
         ivPhoto.setVisibility(View.GONE);
         tvMessageEntrance.setVisibility(View.GONE);
         rlDoorbell.setBackgroundColor(ContextCompat.getColor(getApplicationContext(),R.color.white));
+        turnOffGreenLed();
+        turnOffRedLed();
+    }
 
+    private void turnOffRedLed() {
+        try {
+            mLedRed.setValue(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void turnOffGreenLed() {
+        try {
+            mLedGreen.setValue(false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void turnOnRedLed() {
