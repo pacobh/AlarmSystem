@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AccessControl</string>
+    <string name="allowAccess">Permitir acceso</string>
+</resources>

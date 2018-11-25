@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "145391265223",
+    "firebase_url": "https://alarmsystem-eddc4.firebaseio.com",
+    "project_id": "alarmsystem-eddc4",
+    "storage_bucket": "alarmsystem-eddc4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:145391265223:android:9e279182eae9a3de",
+        "android_client_info": {
+          "package_name": "fjbermudez.com.alarmsistem"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "145391265223-r0hhp4liseb0rq6a0vjn7a57ske53qr8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyABT00oFJuCJhu_xInTYbMwkq__d4l7hHs"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
