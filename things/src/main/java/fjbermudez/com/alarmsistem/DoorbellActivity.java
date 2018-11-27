@@ -308,7 +308,7 @@ public class DoorbellActivity extends Activity {
                         Log.i(TAG, "Image upload successful");
                         entrances.child(DatabaseConstants.TIME_STAMP_KEY).setValue(ServerValue.TIMESTAMP);
                         entrances.child(DatabaseConstants.IMAGE_KEY).setValue(downloadURL);
-                        entrances.child(DatabaseConstants.ACCEPT_ENTRANCE_KEY).setValue(false);
+                        entrances.child(DatabaseConstants.ACCEPT_ENTRANCE_KEY).setValue(null);
                         entrances.child(DatabaseConstants.REGISTER_KEY).setValue(entrances.getKey());
                         // process image annotations
 //                        annotateImage(entrances, imageBytes);
@@ -333,6 +333,20 @@ public class DoorbellActivity extends Activity {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 Log.d("l>" ,"added");
+                if(dataSnapshot.getValue() !=null && dataSnapshot.getKey().equalsIgnoreCase(DatabaseConstants.ACCEPT_ENTRANCE_KEY)) {
+
+                    boolean acceptEntrance = (boolean) dataSnapshot.getValue();
+
+                    allowEntrance = acceptEntrance;
+                    configureAcceptView(acceptEntrance);
+
+                    if (acceptEntrance) {
+                        turnOnGreenLed();
+                    } else {
+                        turnOnRedLed();
+                    }
+
+                }
             }
 
             @Override
