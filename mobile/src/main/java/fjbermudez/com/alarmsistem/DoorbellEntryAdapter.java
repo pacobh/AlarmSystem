@@ -112,9 +112,13 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
             GlideApp.with(mApplicationContext)
                     .load(imageRef)
                     .placeholder(R.drawable.ic_image)
+                    .circleCrop()
                     .into(holder.image);
         }
 
+        /**
+         * Timer to block changes in a minute
+         */
         CountDownTimer timeToAcceptEntrance = new CountDownTimer(60000,60000) {
             @Override
             public void onTick(long millisUntilFinished) {
@@ -127,8 +131,8 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
             }
         };
         timeToAcceptEntrance.start();
-        // onClickListenerButtons
 
+        //region onClickListenerButtons
         holder.acceptEntrance.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -146,6 +150,7 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
                }
             }
         });
+        //endregion
 
         // Display the metadata
 //        if (model.getAnnotations() != null) {
@@ -158,6 +163,7 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
 //        }
     }
 
+    //region UpdateEntrance
     private void acceptEntrance(DoorbellEntry model){
 
         Map<String,Object> acceptMap = new HashMap<String,Object>();
@@ -172,5 +178,6 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
         databaseReference.child(model.getKey()).updateChildren(deniedMap);
 
     }
+    //endregion
 
 }

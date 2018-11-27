@@ -77,20 +77,19 @@ public class DoorbellActivity extends Activity {
     private static final String TAG = DoorbellActivity.class.getSimpleName();
 
     private FirebaseDatabase mDatabase;
-    private FirebaseStorage mStorage;
-    private DoorbellCamera mCamera;
 
-    @BindView(R.id.ivPhoto)
-    ImageView ivPhoto;
-    @BindView(R.id.rlDoorbell)
-    RelativeLayout rlDoorbell;
-    @BindView(R.id.tvMessageEntrance)
-    TextView tvMessageEntrance;
+    private FirebaseStorage mStorage;
+
+    private DoorbellCamera mCamera;
 
     // Timer to show or hide view to entrance
     private CountDownTimer countDownTimer;
 
+    private boolean allowEntrance = false;
 
+    //GPIO leds
+    private Gpio mLedGreen;
+    private Gpio mLedRed;
 
     /**
      * Driver for the doorbell button;
@@ -120,10 +119,14 @@ public class DoorbellActivity extends Activity {
      * An additional thread for running Cloud tasks that shouldn't block the UI.
      */
     private HandlerThread mCloudThread;
-    private boolean allowEntrance = false;
 
-    private Gpio mLedGreen;
-    private Gpio mLedRed;
+
+    @BindView(R.id.ivPhoto)
+    ImageView ivPhoto;
+    @BindView(R.id.rlDoorbell)
+    RelativeLayout rlDoorbell;
+    @BindView(R.id.tvMessageEntrance)
+    TextView tvMessageEntrance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -169,6 +172,7 @@ public class DoorbellActivity extends Activity {
 
     }
 
+    //region initGPIO
     private void initLedGpio() {
         try {
             String pinLedGreen = BoardDefaults.getGPIOForGreenLed();
@@ -202,54 +206,9 @@ public class DoorbellActivity extends Activity {
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        mCamera.shutDown();
+    //endregion
 
-        mCameraThread.quitSafely();
-        mCloudThread.quitSafely();
-        try {
-            mButtonInputDriver.close();
-        } catch (IOException e) {
-            Log.e(TAG, "button driver error", e);
-        }
-    }
-
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_CAMERA) {
-            // Doorbell rang!
-            Log.d(TAG, "button pressed");
-
-            mCamera.takePicture();
-//            CountDownTimer timer = new CountDownTimer(20000, 1000) {
-//
-//                @Override
-//                public void onTick(long millisUntilFinished) {
-//                    // Nothing to do
-//                }
-//
-//                @Override
-//                public void onFinish() {
-//                    if (alarm.isPlaying()) {
-//                        alarm.stop();
-//                        alarm.release();
-//                        alarm = MediaPlayer.create(getApplicationContext(), R.raw.alarma);
-//
-//                    }
-//                }
-//            };
-//            timer.start();
-            return true;
-        } else if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            if (!allowEntrance) {
-                Toast.makeText(getApplicationContext(), getString(R.string.message_alarm), Toast.LENGTH_LONG).show();
-            }
-        }
-        return super.onKeyUp(keyCode, event);
-    }
-
+    //region cameraCapture
     /**
      * Listener for new camera images.
      */
@@ -326,6 +285,59 @@ public class DoorbellActivity extends Activity {
         }
     }
 
+    private void showPhoto(Bitmap photo) {
+        ivPhoto.setVisibility(View.VISIBLE);
+        ivPhoto.setImageBitmap(photo);
+    }
+
+    /**
+     * Process image contents with Cloud Vision.
+     */
+    private void annotateImage(final DatabaseReference ref, final byte[] imageBytes) {
+        mCloudHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "sending image to cloud vision");
+                // annotate image by uploading to Cloud Vision API
+                try {
+                    Map<String, Float> annotations = CloudVisionUtils.annotateImage(imageBytes);
+                    Log.d(TAG, "cloud vision annotations:" + annotations);
+                    if (annotations != null) {
+                        ref.child("annotations").setValue(annotations);
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "Cloud Vison API error: ", e);
+                }
+            }
+        });
+    }
+    //endregion
+
+    //region Events
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_CAMERA) {
+            // Doorbell rang!
+            Log.d(TAG, "button pressed");
+
+            mCamera.takePicture();
+
+            return true;
+        } else if (keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (!allowEntrance) {
+                Toast.makeText(getApplicationContext(), getString(R.string.message_alarm), Toast.LENGTH_LONG).show();
+            }
+        }
+        return super.onKeyUp(keyCode, event);
+    }
+    //endregion
+
+    //region acceptEntrances
+    /**
+     * Listener to detect acceptEntrances values
+     * @param log
+     * @param key
+     */
     private void registerListenerChangeEntranceValue(DatabaseReference log, String key) {
 
         log.addChildEventListener(new ChildEventListener() {
@@ -388,22 +400,27 @@ public class DoorbellActivity extends Activity {
         });
     }
 
+    /**
+     * Method to change view according to acceptEntranceValue
+     * @param acceptEntrance
+     */
     private void configureAcceptView(boolean acceptEntrance) {
 
         createTimeOutToWaitAcceptEntrance();
         tvMessageEntrance.setVisibility(View.VISIBLE);
 
         if(acceptEntrance){
-//            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.green));
             tvMessageEntrance.setText(getString(R.string.entrance_accepted));
             tvMessageEntrance.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.green));
         }else{
-//            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.red));
             tvMessageEntrance.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.red));
             tvMessageEntrance.setText(getString(R.string.entrance_denied));
         }
     }
 
+    /**
+     * TimeOut to clean values
+     */
     private void createTimeOutToWaitAcceptEntrance() {
 
 
@@ -425,6 +442,9 @@ public class DoorbellActivity extends Activity {
         countDownTimer.start();
     }
 
+    /**
+     * Method to clean values
+     */
     private void cleanValues() {
 
         ivPhoto.setVisibility(View.GONE);
@@ -434,6 +454,9 @@ public class DoorbellActivity extends Activity {
         turnOffRedLed();
     }
 
+    /**
+     * Method to trunOff red led
+     */
     private void turnOffRedLed() {
         try {
             mLedRed.setValue(false);
@@ -442,6 +465,9 @@ public class DoorbellActivity extends Activity {
         }
     }
 
+    /**
+     * Method to turnOff green led
+     */
     private void turnOffGreenLed() {
         try {
             mLedGreen.setValue(false);
@@ -469,31 +495,20 @@ public class DoorbellActivity extends Activity {
         }
     }
 
-    private void showPhoto(Bitmap photo) {
-        ivPhoto.setVisibility(View.VISIBLE);
-        ivPhoto.setImageBitmap(photo);
-    }
+    //endregion
 
-    /**
-     * Process image contents with Cloud Vision.
-     */
-    private void annotateImage(final DatabaseReference ref, final byte[] imageBytes) {
-        mCloudHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "sending image to cloud vision");
-                // annotate image by uploading to Cloud Vision API
-                try {
-                    Map<String, Float> annotations = CloudVisionUtils.annotateImage(imageBytes);
-                    Log.d(TAG, "cloud vision annotations:" + annotations);
-                    if (annotations != null) {
-                        ref.child("annotations").setValue(annotations);
-                    }
-                } catch (IOException e) {
-                    Log.e(TAG, "Cloud Vison API error: ", e);
-                }
-            }
-        });
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mCamera.shutDown();
+
+        mCameraThread.quitSafely();
+        mCloudThread.quitSafely();
+        try {
+            mButtonInputDriver.close();
+        } catch (IOException e) {
+            Log.e(TAG, "button driver error", e);
+        }
     }
 
     @Override
