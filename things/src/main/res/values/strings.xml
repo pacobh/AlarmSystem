@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">AccessControl</string>
     <string name="allowAccess">Permitir acceso</string>
-    <string name="message_alarm">Has entrado en casa ajena sin permiso</string>
+    <string name="message_alarm">No tiene permiso para acceder a esta casa</string>
     <string name="welcome_message">Hola, pulse el botón y espere para acceder a la casa.</string>
     <string name="entrance_accepted">Entrada permitida, bienvenido.</string>
     <string name="entrance_denied">Lo siento, no puede pasar.</string>

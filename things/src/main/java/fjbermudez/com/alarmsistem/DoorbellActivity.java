@@ -120,9 +120,8 @@ public class DoorbellActivity extends Activity {
      * An additional thread for running Cloud tasks that shouldn't block the UI.
      */
     private HandlerThread mCloudThread;
-    MediaPlayer alarm = null;
-    MediaPlayer bell = null;
-    MediaPlayer messageEntrance = null;
+    private boolean allowEntrance = false;
+
     private Gpio mLedGreen;
     private Gpio mLedRed;
 
@@ -133,15 +132,9 @@ public class DoorbellActivity extends Activity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         ButterKnife.bind(this);
-
-
-
         Log.d(TAG, "Doorbell Activity created.");
-        // Initialize alarm sound
-        alarm = MediaPlayer.create(this, R.raw.alarma);
-
-
         // We need permission to access the camera
         if (checkSelfPermission(Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -228,23 +221,30 @@ public class DoorbellActivity extends Activity {
         if (keyCode == KeyEvent.KEYCODE_CAMERA) {
             // Doorbell rang!
             Log.d(TAG, "button pressed");
-            mCamera.takePicture();
-            alarm.stop();
-            alarm.release();
-            alarm = MediaPlayer.create(this, R.raw.alarma);
 
+            mCamera.takePicture();
+//            CountDownTimer timer = new CountDownTimer(20000, 1000) {
+//
+//                @Override
+//                public void onTick(long millisUntilFinished) {
+//                    // Nothing to do
+//                }
+//
+//                @Override
+//                public void onFinish() {
+//                    if (alarm.isPlaying()) {
+//                        alarm.stop();
+//                        alarm.release();
+//                        alarm = MediaPlayer.create(getApplicationContext(), R.raw.alarma);
+//
+//                    }
+//                }
+//            };
+//            timer.start();
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_ENTER) {
-            Toast.makeText(getApplicationContext(), getString(R.string.message_alarm), Toast.LENGTH_LONG).show();
-            try {
-                if (alarm.isPlaying()) {
-                    alarm.stop();
-                    alarm.release();
-                    alarm = MediaPlayer.create(this, R.raw.alarma);
-                }
-                alarm.start();
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (!allowEntrance) {
+                Toast.makeText(getApplicationContext(), getString(R.string.message_alarm), Toast.LENGTH_LONG).show();
             }
         }
         return super.onKeyUp(keyCode, event);
@@ -330,25 +330,6 @@ public class DoorbellActivity extends Activity {
 
         log.addChildEventListener(new ChildEventListener() {
 
-//        log.child(key).child(DatabaseConstants.ACCEPT_ENTRANCE_KEY).addChildEventListener(new ChildEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-//                Toast.makeText(getApplicationContext(),"Ha cambiado el valor " + dataSnapshot.getValue(),Toast.LENGTH_LONG).show();
-//
-//                if(dataSnapshot.getValue() !=null) {
-//
-//                boolean acceptEntrance = (boolean) dataSnapshot.getValue();
-//
-//                    configureAcceptView(acceptEntrance);
-//
-//                    if (acceptEntrance) {
-//                        turnOnGreenLed();
-//                    } else {
-//                        turnOnRedLed();
-//                    }
-//                }
-//            }
-
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 Log.d("l>" ,"added");
@@ -362,7 +343,7 @@ public class DoorbellActivity extends Activity {
                 if(dataSnapshot.getValue() !=null && dataSnapshot.getKey().equalsIgnoreCase(DatabaseConstants.ACCEPT_ENTRANCE_KEY)) {
 
                 boolean acceptEntrance = (boolean) dataSnapshot.getValue();
-
+                allowEntrance = acceptEntrance;
                     configureAcceptView(acceptEntrance);
 
                     if (acceptEntrance) {
@@ -399,11 +380,14 @@ public class DoorbellActivity extends Activity {
         tvMessageEntrance.setVisibility(View.VISIBLE);
 
         if(acceptEntrance){
-            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.green));
+//            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.green));
             tvMessageEntrance.setText(getString(R.string.entrance_accepted));
+            tvMessageEntrance.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.green));
         }else{
-            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.red));
-            tvMessageEntrance.setText(getString(R.string.entrance_denied));        }
+//            rlDoorbell.setBackgroundColor(ContextCompat.getColor(this,R.color.red));
+            tvMessageEntrance.setTextColor(ContextCompat.getColor(getApplicationContext(),R.color.red));
+            tvMessageEntrance.setText(getString(R.string.entrance_denied));
+        }
     }
 
     private void createTimeOutToWaitAcceptEntrance() {
