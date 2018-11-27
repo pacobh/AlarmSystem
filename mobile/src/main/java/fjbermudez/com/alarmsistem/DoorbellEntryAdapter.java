@@ -46,6 +46,8 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
 
     private DatabaseReference databaseReference;
     private final String KEY_ACCEPT_ENTRANCE_VALUE = "acceptEntrance";
+    private boolean allowChanges;
+
 
 
     /**
@@ -97,6 +99,7 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
     @Override
     protected void onBindViewHolder(DoorbellEntryViewHolder holder, int position, final DoorbellEntry model) {
 
+        allowChanges = true;
         // Display the timestamp
         CharSequence prettyTime = DateUtils.getRelativeDateTimeString(mApplicationContext,
                 model.getTimestamp(), DateUtils.SECOND_IN_MILLIS, DateUtils.WEEK_IN_MILLIS, 0);
@@ -112,19 +115,35 @@ public class DoorbellEntryAdapter extends FirebaseRecyclerAdapter<DoorbellEntry,
                     .into(holder.image);
         }
 
+        CountDownTimer timeToAcceptEntrance = new CountDownTimer(60000,60000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+            }
+
+            @Override
+            public void onFinish() {
+                allowChanges = false;
+            }
+        };
+        timeToAcceptEntrance.start();
         // onClickListenerButtons
 
         holder.acceptEntrance.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                acceptEntrance(model);
+              if(allowChanges) {
+                  acceptEntrance(model);
+              }
             }
         });
 
         holder.deniedEntrance.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                deniedEntrance(model);
+               if(allowChanges) {
+                   deniedEntrance(model);
+               }
             }
         });
 
