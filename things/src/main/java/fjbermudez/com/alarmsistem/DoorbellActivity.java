@@ -199,6 +199,7 @@ public class DoorbellActivity extends Activity {
                     Button.LogicState.PRESSED_WHEN_LOW,
                     KeyEvent.KEYCODE_ENTER);
             motionInputDetect.register();
+
         } catch (IOException e) {
             mButtonInputDriver = null;
             motionInputDetect = null;
@@ -223,6 +224,7 @@ public class DoorbellActivity extends Activity {
                     imageBuf.get(imageBytes);
                     image.close();
 
+                    Log.d("l>","tengo imagen");
                     onPictureTaken(imageBytes);
                 }
             };
@@ -246,8 +248,7 @@ public class DoorbellActivity extends Activity {
 
             // upload image to storage
             UploadTask task = imageRef.putBytes(imageBytes);
-
-            Task<Uri> urlTask = task.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+            task.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
                 @Override
                 public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
                     if (!task.isSuccessful()) {
@@ -269,8 +270,10 @@ public class DoorbellActivity extends Activity {
                         entrances.child(DatabaseConstants.IMAGE_KEY).setValue(downloadURL);
                         entrances.child(DatabaseConstants.ACCEPT_ENTRANCE_KEY).setValue(null);
                         entrances.child(DatabaseConstants.REGISTER_KEY).setValue(entrances.getKey());
+
+
                         // process image annotations
-//                        annotateImage(entrances, imageBytes);
+                        annotateImage(entrances, imageBytes);
 
                         registerListenerChangeEntranceValue(entrances,entrances.getKey());
                     } else {
@@ -318,7 +321,7 @@ public class DoorbellActivity extends Activity {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_CAMERA) {
             // Doorbell rang!
-            Log.d(TAG, "button pressed");
+            Log.d("L>", "button pressed");
 
             mCamera.takePicture();
 
@@ -345,6 +348,9 @@ public class DoorbellActivity extends Activity {
             @Override
             public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 Log.d("l>" ,"added");
+
+                // check new field entrance data
+
                 if(dataSnapshot.getValue() !=null && dataSnapshot.getKey().equalsIgnoreCase(DatabaseConstants.ACCEPT_ENTRANCE_KEY)) {
 
                     boolean acceptEntrance = (boolean) dataSnapshot.getValue();

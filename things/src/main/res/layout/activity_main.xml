@@ -10,17 +10,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/tvMessage"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="20dp"
         android:text="@string/welcome_message"
-        android:layout_marginBottom="20dp"
         android:layout_centerHorizontal="true"/>
 
     <ImageView
-        android:layout_width="400dp"
-        android:layout_height="400dp"
-        android:layout_marginTop="30dp"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        android:layout_marginTop="10dp"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
+        android:scaleType="centerInside"
         tools:src="@drawable/ic_launcher_background"
         android:layout_below="@+id/tvMessage"
         android:id="@+id/ivPhoto"/>
@@ -31,7 +31,7 @@
         android:id="@+id/tvMessageEntrance"
         android:layout_below="@+id/ivPhoto"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="5dp"
         android:visibility="gone"
         android:textSize="22sp"
         android:textColor="@color/white"/>

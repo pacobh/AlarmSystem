@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">MobileAccessControl</string>
-    <string name="allow">Permitir</string>
-    <string name="denied">Denegar</string>
+    <string name="allow">Allow</string>
+    <string name="denied">Deny</string>
 </resources>

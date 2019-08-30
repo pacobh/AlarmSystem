@@ -20,6 +20,7 @@ import android.os.Build;
 
 @SuppressWarnings("WeakerAccess")
 public class BoardDefaults {
+
     private static final String DEVICE_RPI3 = "rpi3";
     private static final String DEVICE_IMX7D_PICO = "imx7d_pico";
 
@@ -37,6 +38,10 @@ public class BoardDefaults {
         }
     }
 
+    /**
+     * GPIO motion detector
+     * @return
+     */
     public static String getGPIOForMotionDetector() {
         switch (Build.DEVICE) {
             case DEVICE_RPI3:
@@ -48,6 +53,10 @@ public class BoardDefaults {
         }
     }
 
+    /**
+     * GPIO to green led
+     * @return
+     */
     public static String getGPIOForGreenLed(){
 
         switch (Build.DEVICE) {
@@ -60,6 +69,11 @@ public class BoardDefaults {
         }
 
     }
+
+    /**
+     * GPIO to red led
+     * @return
+     */
     public static String getGPIOForRedLed(){
 
         switch (Build.DEVICE) {
